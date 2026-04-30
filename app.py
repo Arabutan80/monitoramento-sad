@@ -3,7 +3,7 @@ import pandas as pd
 
 URL = "https://docs.google.com/spreadsheets/d/1yO4wEkz_3ABCNQk5peVeFEvUJTAmc7ZFaV79tfpgw8g/export?format=csv"
 
-st.set_page_config(page_title="Monitoramento SAD", layout="wide")
+st.set_page_config(page_title="🌱 SAD Macaúbas | Monitoramento Agroenergia", layout="wide")
 
 # =========================
 # CSS TEMA CLARO + CARDS CENTRALIZADOS + TABELA ESQUERDA
