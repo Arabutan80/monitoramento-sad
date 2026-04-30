@@ -16,10 +16,10 @@ def carregar_dados():
         st.error("Erro ao ler a planilha.")
         return pd.DataFrame()
 
-    # remover espaços extras
-    df = df.applymap(lambda x: str(x).strip())
+    # limpar espaços
+    for col in df.columns:
+        df[col] = df[col].astype(str).str.strip()
 
-    # nomear colunas
     df.columns = [
         "data",
         "dia_semana",
@@ -36,14 +36,12 @@ def carregar_dados():
         "status2"
     ]
 
-    # converter tipos
     df["solo10"] = pd.to_numeric(df["solo10"], errors="coerce")
     df["solo20"] = pd.to_numeric(df["solo20"], errors="coerce")
     df["solo30"] = pd.to_numeric(df["solo30"], errors="coerce")
     df["temp_ar"] = pd.to_numeric(df["temp_ar"], errors="coerce")
     df["umid_ar"] = pd.to_numeric(df["umid_ar"], errors="coerce")
 
-    # criar datetime
     df["datetime"] = pd.to_datetime(
         df["data"] + " " + df["hora"],
         dayfirst=True,
