@@ -10,18 +10,22 @@ URL = "https://docs.google.com/spreadsheets/d/1yO4wEkz_3ABCNQk5peVeFEvUJTAmc7ZFa
 
 @st.cache_data
 def carregar_dados():
-    df_raw = pd.read_csv(URL, sep=';', header=None)
+    try:
+        df_raw = pd.read_csv(URL, sep=';', header=None, engine='python')
+    except:
+        st.error("Erro ao ler o CSV. Verifique se a planilha está pública.")
+        return pd.DataFrame()
 
     registros = []
     bloco = []
 
     for _, row in df_raw.iterrows():
-        valor = row[0]
+        valor = str(row[0]).strip()
 
-        if pd.isna(valor):
+        if valor == "" or valor.lower() == "nan":
             continue
 
-        bloco.append(str(valor).strip())
+        bloco.append(valor)
 
         if len(bloco) == 13:
             try:
@@ -45,6 +49,10 @@ def carregar_dados():
 
             bloco = []
 
+    if len(registros) == 0:
+        st.error("Nenhum dado válido encontrado na planilha.")
+        return pd.DataFrame()
+
     df = pd.DataFrame(registros)
 
     df["datetime"] = pd.to_datetime(
@@ -58,6 +66,9 @@ def carregar_dados():
     return df
 
 df = carregar_dados()
+
+if df.empty:
+    st.stop()
 
 # ===== KPIs =====
 st.subheader("Indicadores atuais")
