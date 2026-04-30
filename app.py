@@ -1,89 +1,108 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(layout="wide")
-
-st.title("Sistema de Monitoramento SAD")
-
-# LINK CSV (já corrigido)
+# URL do CSV publicado no Google Sheets
 URL = "https://docs.google.com/spreadsheets/d/1yO4wEkz_3ABCNQk5peVeFEvUJTAmc7ZFaV79tfpgw8g/export?format=csv"
 
+# =========================
+# FUNÇÃO DE CARREGAMENTO
+# =========================
 @st.cache_data
 def carregar_dados():
-    df_raw = pd.read_csv(URL, sep=';', header=None)
+    try:
+        df = pd.read_csv(URL, sep=",")
+    except Exception as e:
+        st.error(f"Erro ao ler a planilha: {e}")
+        return pd.DataFrame()
 
-    registros = []
-    bloco = []
+    # Remover espaços extras (muito importante no seu caso)
+    for col in df.columns:
+        df[col] = df[col].astype(str).str.strip()
 
-    for _, row in df_raw.iterrows():
-        valor = row[0]
+    # Nomear colunas corretamente
+    df.columns = [
+        "data",
+        "dia_semana",
+        "hora",
+        "solo10",
+        "solo20",
+        "solo30",
+        "raw10",
+        "raw20",
+        "raw30",
+        "temp_ar",
+        "umid_ar",
+        "status1",
+        "status2"
+    ]
 
-        if pd.isna(valor):
-            continue
+    # Conversões numéricas seguras
+    col_numericas = [
+        "solo10", "solo20", "solo30",
+        "raw10", "raw20", "raw30",
+        "temp_ar", "umid_ar",
+        "status1", "status2"
+    ]
 
-        bloco.append(str(valor).strip())
+    for col in col_numericas:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        if len(bloco) == 13:
-            try:
-                registros.append({
-                    "data": bloco[0],
-                    "dia_semana": int(bloco[1]),
-                    "hora": bloco[2],
-                    "solo10": float(bloco[3]),
-                    "solo20": float(bloco[4]),
-                    "solo30": float(bloco[5]),
-                    "raw10": int(bloco[6]),
-                    "raw20": int(bloco[7]),
-                    "raw30": int(bloco[8]),
-                    "temp_ar": float(bloco[9]),
-                    "umid_ar": float(bloco[10]),
-                    "status1": int(bloco[11]),
-                    "status2": int(bloco[12]),
-                })
-            except:
-                pass
-
-            bloco = []
-
-    df = pd.DataFrame(registros)
-
+    # Criar coluna datetime
     df["datetime"] = pd.to_datetime(
         df["data"] + " " + df["hora"],
         dayfirst=True,
         errors="coerce"
     )
 
+    # Remover linhas inválidas
     df = df.dropna(subset=["datetime"])
 
     return df
 
+
+# =========================
+# EXECUÇÃO PRINCIPAL
+# =========================
 df = carregar_dados()
 
-# ===== KPIs =====
-st.subheader("Indicadores atuais")
+# Evita quebra do sistema
+if df.empty:
+    st.warning("Nenhum dado disponível.")
+    st.stop()
+
+# =========================
+# INTERFACE
+# =========================
+
+st.set_page_config(page_title="Monitoramento SAD", layout="wide")
+
+st.title("Sistema de Monitoramento SAD")
+
+# KPIs (último valor)
+ultimo = df.iloc[-1]
 
 col1, col2, col3 = st.columns(3)
 
-col1.metric("Temp Ar (°C)", f"{df['temp_ar'].iloc[-1]:.2f}")
-col2.metric("Umidade Ar (%)", f"{df['umid_ar'].iloc[-1]:.2f}")
-col3.metric("Solo Médio (°C)", f"{df[['solo10','solo20','solo30']].mean(axis=1).iloc[-1]:.2f}")
+col1.metric("Temp. Ar (°C)", f"{ultimo['temp_ar']:.2f}")
+col2.metric("Umidade (%)", f"{ultimo['umid_ar']:.2f}")
+col3.metric("Solo 10cm", f"{ultimo['solo10']:.2f}")
 
-# ===== GRÁFICO SOLO =====
-st.subheader("Temperatura do Solo")
+# =========================
+# GRÁFICOS
+# =========================
 
-st.line_chart(df.set_index("datetime")[["solo10","solo20","solo30"]])
+st.subheader("Umidade do Solo")
+st.line_chart(df.set_index("datetime")[["solo10", "solo20", "solo30"]])
 
-# ===== AMBIENTE =====
-col1, col2 = st.columns(2)
+st.subheader("Temperatura do Ar")
+st.line_chart(df.set_index("datetime")[["temp_ar"]])
 
-with col1:
-    st.subheader("Temperatura do Ar")
-    st.line_chart(df.set_index("datetime")["temp_ar"])
+st.subheader("Umidade do Ar")
+st.line_chart(df.set_index("datetime")[["umid_ar"]])
 
-with col2:
-    st.subheader("Umidade do Ar")
-    st.line_chart(df.set_index("datetime")["umid_ar"])
+# =========================
+# TABELA FINAL
+# =========================
 
-# ===== TABELA =====
-st.subheader("Últimas Leituras")
-st.dataframe(df.tail(10))
+st.subheader("Últimos Registros")
+st.dataframe(df.tail(20))
