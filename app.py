@@ -11,50 +11,39 @@ URL = "https://docs.google.com/spreadsheets/d/1yO4wEkz_3ABCNQk5peVeFEvUJTAmc7ZFa
 @st.cache_data
 def carregar_dados():
     try:
-        df_raw = pd.read_csv(URL, sep=';', header=None, engine='python')
+        df = pd.read_csv(URL, sep=",")
     except:
-        st.error("Erro ao ler o CSV. Verifique se a planilha está pública.")
+        st.error("Erro ao ler a planilha.")
         return pd.DataFrame()
 
-    registros = []
-    bloco = []
+    # remover espaços extras
+    df = df.applymap(lambda x: str(x).strip())
 
-    for _, row in df_raw.iterrows():
-        valor = str(row[0]).strip()
+    # nomear colunas
+    df.columns = [
+        "data",
+        "dia_semana",
+        "hora",
+        "solo10",
+        "solo20",
+        "solo30",
+        "raw10",
+        "raw20",
+        "raw30",
+        "temp_ar",
+        "umid_ar",
+        "status1",
+        "status2"
+    ]
 
-        if valor == "" or valor.lower() == "nan":
-            continue
+    # converter tipos
+    df["solo10"] = pd.to_numeric(df["solo10"], errors="coerce")
+    df["solo20"] = pd.to_numeric(df["solo20"], errors="coerce")
+    df["solo30"] = pd.to_numeric(df["solo30"], errors="coerce")
+    df["temp_ar"] = pd.to_numeric(df["temp_ar"], errors="coerce")
+    df["umid_ar"] = pd.to_numeric(df["umid_ar"], errors="coerce")
 
-        bloco.append(valor)
-
-        if len(bloco) == 13:
-            try:
-                registros.append({
-                    "data": bloco[0],
-                    "dia_semana": int(bloco[1]),
-                    "hora": bloco[2],
-                    "solo10": float(bloco[3]),
-                    "solo20": float(bloco[4]),
-                    "solo30": float(bloco[5]),
-                    "raw10": int(bloco[6]),
-                    "raw20": int(bloco[7]),
-                    "raw30": int(bloco[8]),
-                    "temp_ar": float(bloco[9]),
-                    "umid_ar": float(bloco[10]),
-                    "status1": int(bloco[11]),
-                    "status2": int(bloco[12]),
-                })
-            except:
-                pass
-
-            bloco = []
-
-    if len(registros) == 0:
-        st.error("Nenhum dado válido encontrado na planilha.")
-        return pd.DataFrame()
-
-    df = pd.DataFrame(registros)
-
+    # criar datetime
     df["datetime"] = pd.to_datetime(
         df["data"] + " " + df["hora"],
         dayfirst=True,
