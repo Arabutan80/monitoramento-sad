@@ -1,30 +1,26 @@
 import streamlit as st
 import pandas as pd
 
-# URL do CSV publicado no Google Sheets (mantido igual)
 URL = "https://docs.google.com/spreadsheets/d/1yO4wEkz_3ABCNQk5peVeFEvUJTAmc7ZFaV79tfpgw8g/export?format=csv"
 
-# =========================
-# CONFIGURAÇÃO DA PÁGINA
-# =========================
 st.set_page_config(page_title="Monitoramento SAD", layout="wide")
 
 # =========================
-# CSS TEMA ESCURO + CARDS CENTRALIZADOS + TABELA ESQUERDA
+# CSS TEMA CLARO + CARDS CENTRALIZADOS + TABELA ESQUERDA
 # =========================
 st.markdown("""
 <style>
     .stApp, body, .main {
-        background-color: #0f1a0e;
-        color: #d4e0cc;
+        background-color: #ffffff;
+        color: #1a1a1a;
     }
     .kpi-card {
-        background: #182015;
-        border: 1px solid #2a3a25;
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
         border-radius: 14px;
         padding: 16px 18px;
         margin-bottom: 12px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         height: 100%;
         text-align: center;
     }
@@ -32,32 +28,31 @@ st.markdown("""
         font-size: 0.72rem;
         text-transform: uppercase;
         letter-spacing: 0.6px;
-        color: #8a9a80;
+        color: #666666;
         margin-bottom: 8px;
     }
     .kpi-card .valor-linha {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #f0f4e8;
+        color: #222222;
         margin-bottom: 4px;
     }
     .kpi-card .unidade {
         font-size: 0.85rem;
-        color: #8a9a80;
+        color: #666666;
     }
-    .temp-solo { border-left: 4px solid #e8784a; }
-    .umid-solo { border-left: 4px solid #2ecc88; }
-    .temp-ar   { border-left: 4px solid #4da6e8; }
-    .umid-ar   { border-left: 4px solid #5b8def; }
-    .flags     { border-left: 4px solid #f0c040; }
+    .temp-solo { border-left: 4px solid #e74c3c; }
+    .umid-solo { border-left: 4px solid #3498db; }
+    .temp-ar   { border-left: 4px solid #e67e22; }
+    .umid-ar   { border-left: 4px solid #2ecc71; }
+    .flags     { border-left: 4px solid #f1c40f; }
     .flag-dot {
         width: 11px; height: 11px; border-radius: 50%;
         display: inline-block; margin-right: 5px;
     }
-    .flag-ok { background: #2ecc71; }
+    .flag-ok { background: #27ae60; }
     .flag-warn { background: #e74c3c; }
-    h1, h2, h3 { color: #e8f0e0 !important; }
-    /* Tabela alinhada à esquerda */
+    h1, h2, h3 { color: #222222 !important; }
     div[data-testid="stDataFrame"] table td,
     div[data-testid="stDataFrame"] table th {
         text-align: left !important;
@@ -67,9 +62,6 @@ st.markdown("""
 
 st.title("🌱 Sistema de Monitoramento SAD")
 
-# =========================
-# FUNÇÃO DE CARREGAMENTO
-# =========================
 @st.cache_data
 def carregar_dados():
     try:
@@ -81,11 +73,10 @@ def carregar_dados():
     for col in df.columns:
         df[col] = df[col].astype(str).str.strip()
 
-    # Renomear colunas para 30/60/90 cm
     df.columns = [
         "data", "dia_semana", "hora",
-        "solo30", "solo60", "solo90",   # temperaturas
-        "raw30", "raw60", "raw90",      # umidade raw
+        "solo30", "solo60", "solo90",
+        "raw30", "raw60", "raw90",
         "temp_ar", "umid_ar",
         "status1", "status2"
     ]
@@ -113,13 +104,7 @@ if df.empty:
     st.warning("Nenhum dado disponível.")
     st.stop()
 
-# =========================
-# KPI CARDS (último registro)
-# =========================
 ultimo = df.iloc[-1]
-media_solo = (ultimo["solo30"] + ultimo["solo60"] + ultimo["solo90"]) / 3
-media_umid = (ultimo["raw30"] + ultimo["raw60"] + ultimo["raw90"]) / 3
-
 st.markdown(f"📡 Fonte: Google Sheets | Registros: {len(df)} | Última leitura: {ultimo['data']} {ultimo['hora']}")
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -128,9 +113,9 @@ with col1:
     st.markdown(f"""
     <div class="kpi-card temp-solo">
         <div class="label">Temp. Solo (30/60/90 cm)</div>
-        <div class="valor-linha">{ultimo['solo30']:.1f}°C <span style="font-size:0.8rem;color:#8a9a80;">30 cm</span></div>
-        <div class="valor-linha">{ultimo['solo60']:.1f}°C <span style="font-size:0.8rem;color:#8a9a80;">60 cm</span></div>
-        <div class="valor-linha">{ultimo['solo90']:.1f}°C <span style="font-size:0.8rem;color:#8a9a80;">90 cm</span></div>
+        <div class="valor-linha">{ultimo['solo30']:.1f}°C <span style="font-size:0.8rem;color:#666;">30 cm</span></div>
+        <div class="valor-linha">{ultimo['solo60']:.1f}°C <span style="font-size:0.8rem;color:#666;">60 cm</span></div>
+        <div class="valor-linha">{ultimo['solo90']:.1f}°C <span style="font-size:0.8rem;color:#666;">90 cm</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -138,9 +123,9 @@ with col2:
     st.markdown(f"""
     <div class="kpi-card umid-solo">
         <div class="label">Umidade Solo (30/60/90 cm)</div>
-        <div class="valor-linha">{ultimo['raw30']} <span style="font-size:0.8rem;color:#8a9a80;">(raw) 30 cm</span></div>
-        <div class="valor-linha">{ultimo['raw60']} <span style="font-size:0.8rem;color:#8a9a80;">(raw) 60 cm</span></div>
-        <div class="valor-linha">{ultimo['raw90']} <span style="font-size:0.8rem;color:#8a9a80;">(raw) 90 cm</span></div>
+        <div class="valor-linha">{ultimo['raw30']} <span style="font-size:0.8rem;color:#666;">(raw) 30 cm</span></div>
+        <div class="valor-linha">{ultimo['raw60']} <span style="font-size:0.8rem;color:#666;">(raw) 60 cm</span></div>
+        <div class="valor-linha">{ultimo['raw90']} <span style="font-size:0.8rem;color:#666;">(raw) 90 cm</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -170,46 +155,33 @@ with col5:
             <div><span class="flag-dot {f1}"></span> Cartão Micro SD</div>
             <div><span class="flag-dot {f2}"></span> Relógio RTC</div>
         </div>
-        <div style="font-size:0.7rem;color:#8a9a80;margin-top:8px;">🕐 {ultimo['hora']} · {ultimo['data']}</div>
+        <div style="font-size:0.7rem;color:#666;margin-top:8px;">🕐 {ultimo['hora']} · {ultimo['data']}</div>
     </div>
     """, unsafe_allow_html=True)
 
-# =========================
-# GRÁFICOS
-# =========================
+# Gráficos
 st.subheader("🌡️ Temperatura do Solo — 30 cm, 60 cm e 90 cm")
 st.line_chart(
     data=df.set_index("datetime")[["solo30", "solo60", "solo90"]],
-    color=["#e8784a", "#d4956b", "#f0b090"],
+    color=["#e74c3c", "#3498db", "#e67e22"],   # vermelho, azul, laranja
     height=350
 )
 
 st.subheader("💧 Umidade do Solo — 30 cm, 60 cm e 90 cm")
 st.line_chart(
     data=df.set_index("datetime")[["raw30", "raw60", "raw90"]],
-    color=["#2ecc88", "#45d9a0", "#70e8bb"],
+    color=["#e74c3c", "#3498db", "#e67e22"],   # mesmas cores
     height=350
 )
 
 colA, colB = st.columns(2)
 with colA:
     st.subheader("🌬️ Temperatura do Ar")
-    st.line_chart(
-        data=df.set_index("datetime")["temp_ar"],
-        color="#4da6e8",
-        height=300
-    )
+    st.line_chart(data=df.set_index("datetime")["temp_ar"], color="#e74c3c", height=300)
 with colB:
     st.subheader("💨 Umidade do Ar (%)")
-    st.line_chart(
-        data=df.set_index("datetime")["umid_ar"],
-        color="#5b8def",
-        height=300
-    )
+    st.line_chart(data=df.set_index("datetime")["umid_ar"], color="#3498db", height=300)
 
-# =========================
-# TABELA FINAL (alinhada à esquerda)
-# =========================
 st.subheader("📋 Últimos Registros")
 st.dataframe(
     df[["data", "hora", "solo30", "solo60", "solo90", "raw30", "raw60", "raw90", "temp_ar", "umid_ar", "status1", "status2"]].tail(20),
