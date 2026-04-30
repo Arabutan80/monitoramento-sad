@@ -10,7 +10,7 @@ URL = "https://docs.google.com/spreadsheets/d/1yO4wEkz_3ABCNQk5peVeFEvUJTAmc7ZFa
 st.set_page_config(page_title="Monitoramento SAD", layout="wide")
 
 # =========================
-# CSS TEMA ESCURO + CARDS
+# CSS TEMA ESCURO + ALINHAMENTO
 # =========================
 st.markdown("""
 <style>
@@ -35,7 +35,7 @@ st.markdown("""
         margin-bottom: 4px;
     }
     .kpi-card .value {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #f0f4e8;
     }
@@ -60,14 +60,18 @@ st.markdown("""
     .flag-ok { background: #2ecc71; }
     .flag-warn { background: #e74c3c; }
     h1, h2, h3 { color: #e8f0e0 !important; }
-    .stDataFrame { background: #182015; border: 1px solid #2a3a25; border-radius: 10px; }
+    /* Tabela alinhada à esquerda */
+    div[data-testid="stDataFrame"] table td,
+    div[data-testid="stDataFrame"] table th {
+        text-align: left !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🌱 Sistema de Monitoramento SAD")
 
 # =========================
-# FUNÇÃO DE CARREGAMENTO (mantida igual)
+# FUNÇÃO DE CARREGAMENTO
 # =========================
 @st.cache_data
 def carregar_dados():
@@ -77,54 +81,34 @@ def carregar_dados():
         st.error(f"Erro ao ler a planilha: {e}")
         return pd.DataFrame()
 
-    # Remover espaços extras
     for col in df.columns:
         df[col] = df[col].astype(str).str.strip()
 
-    # Nomear colunas corretamente
     df.columns = [
-        "data",
-        "dia_semana",
-        "hora",
-        "solo10",
-        "solo20",
-        "solo30",
-        "raw10",
-        "raw20",
-        "raw30",
-        "temp_ar",
-        "umid_ar",
-        "status1",
-        "status2"
-    ]
-
-    # Conversões numéricas seguras
-    col_numericas = [
+        "data", "dia_semana", "hora",
         "solo10", "solo20", "solo30",
         "raw10", "raw20", "raw30",
         "temp_ar", "umid_ar",
         "status1", "status2"
     ]
 
+    col_numericas = [
+        "solo10", "solo20", "solo30",
+        "raw10", "raw20", "raw30",
+        "temp_ar", "umid_ar",
+        "status1", "status2"
+    ]
     for col in col_numericas:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Criar coluna datetime
     df["datetime"] = pd.to_datetime(
         df["data"] + " " + df["hora"],
         dayfirst=True,
         errors="coerce"
     )
-
-    # Remover linhas inválidas
     df = df.dropna(subset=["datetime"])
-
     return df
 
-
-# =========================
-# EXECUÇÃO PRINCIPAL
-# =========================
 df = carregar_dados()
 
 if df.empty:
@@ -145,18 +129,18 @@ col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.markdown(f"""
     <div class="kpi-card temp-solo">
-        <div class="label">Temp. Solo (média)</div>
-        <div class="value">{media_solo:.2f}<span class="unit">°C</span></div>
-        <div class="sub">S1:{ultimo['solo10']:.1f} S2:{ultimo['solo20']:.1f} S3:{ultimo['solo30']:.1f}</div>
+        <div class="label">Temp. Solo (30/60/90 cm)</div>
+        <div class="value">{ultimo['solo10']:.1f}  {ultimo['solo20']:.1f}  {ultimo['solo30']:.1f}<span class="unit">°C</span></div>
+        <div class="sub">30 cm &nbsp;&nbsp; 60 cm &nbsp;&nbsp; 90 cm</div>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
     st.markdown(f"""
     <div class="kpi-card umid-solo">
-        <div class="label">Umidade Solo (raw)</div>
-        <div class="value">{media_umid:.1f}</div>
-        <div class="sub">S1:{ultimo['raw10']} S2:{ultimo['raw20']} S3:{ultimo['raw30']}</div>
+        <div class="label">Umidade Solo (30/60/90 cm)</div>
+        <div class="value">{ultimo['raw10']}  {ultimo['raw20']}  {ultimo['raw30']}<span class="unit"> raw</span></div>
+        <div class="sub">30 cm &nbsp;&nbsp; 60 cm &nbsp;&nbsp; 90 cm</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -181,29 +165,28 @@ with col5:
     f2 = "flag-ok" if ultimo["status2"] == 1 else "flag-warn"
     st.markdown(f"""
     <div class="kpi-card flags">
-        <div class="label">Flags</div>
+        <div class="label">Dispositivos</div>
         <div style="display:flex; gap:16px; margin-top:8px;">
-            <div><span class="flag-dot {f1}"></span> Flag 1: {ultimo['status1']}</div>
-            <div><span class="flag-dot {f2}"></span> Flag 2: {ultimo['status2']}</div>
+            <div><span class="flag-dot {f1}"></span> Cartão Micro SD</div>
+            <div><span class="flag-dot {f2}"></span> Relógio RTC</div>
         </div>
         <div class="sub">🕐 {ultimo['hora']} · {ultimo['data']}</div>
     </div>
     """, unsafe_allow_html=True)
 
 # =========================
-# GRÁFICOS MELHORADOS
+# GRÁFICOS
 # =========================
-
-st.subheader("🌡️ Temperatura do Solo — 3 Sensores")
+st.subheader("🌡️ Temperatura do Solo — 30 cm, 60 cm e 90 cm")
 st.line_chart(
-    df.set_index("datetime")[["solo10", "solo20", "solo30"]],
+    data=df.set_index("datetime")[["solo10", "solo20", "solo30"]],
     color=["#e8784a", "#d4956b", "#f0b090"],
     height=350
 )
 
-st.subheader("💧 Umidade do Solo (raw) — 3 Sensores")
+st.subheader("💧 Umidade do Solo — 30 cm, 60 cm e 90 cm")
 st.line_chart(
-    df.set_index("datetime")[["raw10", "raw20", "raw30"]],
+    data=df.set_index("datetime")[["raw10", "raw20", "raw30"]],
     color=["#2ecc88", "#45d9a0", "#70e8bb"],
     height=350
 )
@@ -212,20 +195,20 @@ colA, colB = st.columns(2)
 with colA:
     st.subheader("🌬️ Temperatura do Ar")
     st.line_chart(
-        df.set_index("datetime")["temp_ar"],
+        data=df.set_index("datetime")["temp_ar"],
         color="#4da6e8",
         height=300
     )
 with colB:
     st.subheader("💨 Umidade do Ar (%)")
     st.line_chart(
-        df.set_index("datetime")["umid_ar"],
+        data=df.set_index("datetime")["umid_ar"],
         color="#5b8def",
         height=300
     )
 
 # =========================
-# TABELA FINAL
+# TABELA FINAL (alinhada à esquerda)
 # =========================
 st.subheader("📋 Últimos Registros")
 st.dataframe(
