@@ -60,7 +60,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🌱 Sistema de Monitoramento SAD")
+st.title("🌱 Monitoramento Macaúbas - AGROENERGIA UFT")
 
 @st.cache_data
 def carregar_dados():
