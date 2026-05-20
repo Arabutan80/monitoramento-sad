@@ -11,7 +11,7 @@
 # ---------------------
 # Camada de apresentação web do sistema agrometeorológico, hospedada em Streamlit Cloud,
 # consumindo a base histórica gravada pelo RX no Google Sheets. O painel é renderizado em
-# tempo quase real (atualização automática a cada 60 segundos) e expõe simultaneamente:
+# tempo quase real (atualização automática a cada 5 minutos) e expõe simultaneamente:
 #   1. Cinco cartões de KPI com a leitura mais recente (temperaturas de solo, umidades de
 #      solo, temperatura e umidade do ar, e flags de hardware do TX).
 #   2. Séries temporais das variáveis do solo (temperatura e umidade nas três profundidades).
@@ -20,10 +20,10 @@
 #
 # CICLO DE ATUALIZAÇÃO
 # --------------------
-# O TX coleta dados a cada 15 minutos. O painel atualiza a cada 60 segundos via três camadas
+# O TX coleta dados a cada 15 minutos. O painel atualiza a cada 300 segundos via três camadas
 # combinadas: (a) tag HTML <meta http-equiv="refresh"> injetada na página instrui o próprio
 # navegador a recarregar integralmente a interface, sem dependência de biblioteca externa;
-# (b) cache_data com TTL de 60 s invalida a leitura cacheada da planilha em cada reexecução;
+# (b) cache_data com TTL de 300 s invalida a leitura cacheada da planilha em cada reexecução;
 # (c) parâmetro cachebust adicionado à URL contorna o cache de borda (CDN) do próprio Google
 # Sheets, garantindo que o CSV recebido seja sempre o mais recente publicado pelo doPost do
 # Apps Script.
@@ -106,29 +106,29 @@ st.markdown("""
 st.title("🌱 AGROENERGIA UFT - Monitoramento Macaúbas")
 
 # Atualização automática da página via tag HTML meta refresh: instrui o navegador do cliente
-# a recarregar integralmente a página a cada 60 segundos, disparando uma nova execução do
+# a recarregar integralmente a página a cada 5 minutos, disparando uma nova execução do
 # script Python no servidor Streamlit Cloud. A abordagem nativa do HTML elimina a dependência
 # da biblioteca streamlit-autorefresh — reduzindo o requirements.txt e o tempo de cold start
-# do container — preservando o efeito funcional desejado: latência máxima de 1 minuto entre
+# do container — preservando o efeito funcional desejado: latência máxima de 5 minutos entre
 # a publicação do dado na nuvem e sua visualização no painel, adequada ao ciclo de coleta de
 # 15 minutos do TX.
 st.markdown(
-    '<meta http-equiv="refresh" content="60">',
+    '<meta http-equiv="refresh" content="300">',
     unsafe_allow_html=True
-)                                                                       # [AQUI -->]
+)                                                                       
 
 # =============================================================================================
 # carregar_dados — Realiza a aquisição e o tratamento do CSV exportado pelo Google Sheets,
 # devolvendo um DataFrame Pandas pronto para consumo pelas camadas de visualização. A função
-# é decorada com @st.cache_data(ttl=60), o que serializa o DataFrame em memória por 60 s e
+# é decorada com @st.cache_data(ttl=300), o que serializa o DataFrame em memória por 300 s e
 # evita requisições redundantes ao Google a cada interação do usuário (clique em botão, hover
 # em gráfico) — economizando largura de banda e respeitando os limites de quota da API. O
 # parâmetro cachebust adicionado à URL é a contramedida ao cache de borda (CDN) do Google,
 # que mantém versões intermediárias do CSV por alguns minutos e impede a propagação imediata
 # de novos pacotes gravados pelo doPost. A combinação TTL local + cachebust remoto garante
-# atualização ponta a ponta dentro do intervalo de 60 segundos.
+# atualização ponta a ponta dentro do intervalo de 5 minutos.
 # =============================================================================================
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)
 def carregar_dados():
 
     # Construção da URL com parâmetro cachebust dinâmico (timestamp Unix em segundos): força
