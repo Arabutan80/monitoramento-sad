@@ -20,17 +20,18 @@
 #
 # CICLO DE ATUALIZAÇÃO
 # --------------------
-# O TX coleta dados a cada 15 minutos. O painel atualiza a cada 60 segundos via duas camadas
-# combinadas: (a) st_autorefresh força a reexecução do script Python, (b) cache_data com TTL
-# de 60 s invalida a leitura cacheada da planilha, (c) parâmetro cachebust na URL contorna o
-# cache de borda (CDN) do próprio Google Sheets, garantindo que o CSV recebido seja sempre
-# o mais recente publicado pelo doPost do Apps Script.
+# O TX coleta dados a cada 15 minutos. O painel atualiza a cada 60 segundos via três camadas
+# combinadas: (a) tag HTML <meta http-equiv="refresh"> injetada na página instrui o próprio
+# navegador a recarregar integralmente a interface, sem dependência de biblioteca externa;
+# (b) cache_data com TTL de 60 s invalida a leitura cacheada da planilha em cada reexecução;
+# (c) parâmetro cachebust adicionado à URL contorna o cache de borda (CDN) do próprio Google
+# Sheets, garantindo que o CSV recebido seja sempre o mais recente publicado pelo doPost do
+# Apps Script.
 # =============================================================================================
 
 import streamlit as st
 import pandas as pd
-import time                                                            
-from streamlit_autorefresh import st_autorefresh                       
+import time
 
 # URL de exportação do Google Sheets em formato CSV. O endpoint /export?format=csv produz
 # uma representação imediata e cacheável da planilha completa, eliminando a necessidade de
@@ -104,13 +105,17 @@ st.markdown("""
 
 st.title("🌱 AGROENERGIA UFT - Monitoramento Macaúbas")
 
-# Atualização automática da página a cada 60.000 ms (60 segundos): força a reexecução
-# completa do script Python, invalidando o cache do Streamlit e disparando nova leitura
-# da planilha. A chave 'atualizacao_60s' identifica o widget e impede que múltiplas
-# instâncias do componente sejam criadas em reexecuções. O intervalo de 1 minuto é
-# adequado ao ciclo de coleta de 15 minutos do TX, garantindo latência máxima de 1 min
-# entre a publicação do dado na nuvem e sua visualização no painel.
-st_autorefresh(interval=60_000, key="atualizacao_60s")                 
+# Atualização automática da página via tag HTML meta refresh: instrui o navegador do cliente
+# a recarregar integralmente a página a cada 60 segundos, disparando uma nova execução do
+# script Python no servidor Streamlit Cloud. A abordagem nativa do HTML elimina a dependência
+# da biblioteca streamlit-autorefresh — reduzindo o requirements.txt e o tempo de cold start
+# do container — preservando o efeito funcional desejado: latência máxima de 1 minuto entre
+# a publicação do dado na nuvem e sua visualização no painel, adequada ao ciclo de coleta de
+# 15 minutos do TX.
+st.markdown(
+    '<meta http-equiv="refresh" content="60">',
+    unsafe_allow_html=True
+)                                                                       # [AQUI -->]
 
 # =============================================================================================
 # carregar_dados — Realiza a aquisição e o tratamento do CSV exportado pelo Google Sheets,
@@ -123,16 +128,16 @@ st_autorefresh(interval=60_000, key="atualizacao_60s")
 # de novos pacotes gravados pelo doPost. A combinação TTL local + cachebust remoto garante
 # atualização ponta a ponta dentro do intervalo de 60 segundos.
 # =============================================================================================
-@st.cache_data(ttl=60)                                                 
+@st.cache_data(ttl=60)
 def carregar_dados():
 
     # Construção da URL com parâmetro cachebust dinâmico (timestamp Unix em segundos): força
     # o Google a entregar a versão atualizada do CSV, contornando caches intermediários que
     # poderiam servir cópias defasadas em até 5 minutos.
-    url_com_cachebust = f"{URL}&cachebust={int(time.time())}"          
+    url_com_cachebust = f"{URL}&cachebust={int(time.time())}"
 
     try:
-        df = pd.read_csv(url_com_cachebust, sep=",")                   
+        df = pd.read_csv(url_com_cachebust, sep=",")
     except Exception as e:
 
         # Captura genérica de exceções da camada HTTP (timeout, erro de DNS, planilha sem
@@ -311,7 +316,7 @@ st.dataframe(
 # do script (st.rerun), produzindo o efeito de uma releitura instantânea da planilha. Útil
 # quando o usuário precisa verificar a recepção de um pacote específico recém-transmitido.
 # =============================================================================================
-st.divider()                                                           
-if st.button("🔄 Atualizar agora"):                                    
-    st.cache_data.clear()                                              
-    st.rerun()                                                         
+st.divider()
+if st.button("🔄 Atualizar agora"):
+    st.cache_data.clear()
+    st.rerun()
