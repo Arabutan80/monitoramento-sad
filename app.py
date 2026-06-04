@@ -248,9 +248,9 @@ with col2:
     st.markdown(f"""
     <div class="kpi-card umid-solo">
         <div class="label">Umidade Solo (30/60/90 cm)</div>
-        <div class="valor-linha">{ultimo['umid30']:.1f}% <span style="font-size:0.8rem;color:#666;">30 cm</span></div>
-        <div class="valor-linha">{ultimo['umid60']:.1f}% <span style="font-size:0.8rem;color:#666;">60 cm</span></div>
-        <div class="valor-linha">{ultimo['umid90']:.1f}% <span style="font-size:0.8rem;color:#666;">90 cm</span></div>
+        <div class="valor-linha">~ {ultimo['umid30']:.1f}% <span style="font-size:0.8rem;color:#666;">30 cm</span></div>
+        <div class="valor-linha">~ {ultimo['umid60']:.1f}% <span style="font-size:0.8rem;color:#666;">60 cm</span></div>
+        <div class="valor-linha">~ {ultimo['umid90']:.1f}% <span style="font-size:0.8rem;color:#666;">90 cm</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -295,9 +295,9 @@ with col5:
 # correta proporção temporal entre pontos não equidistantes (importante quando há falhas de
 # transmissão e gaps de mais de 15 minutos). As cores seguem o esquema semântico dos cartões.
 # =============================================================================================
-st.subheader("🌡️ Temperatura do Solo — 30 cm, 60 cm e 90 cm")
+st.subheader("🌡️ Temperatura do Solo — 30 cm, 60 cm e 90 cm (°C)")
 st.line_chart(
-    data=df.set_index("datetime")[["solo30", "solo60", "solo90"]],
+    data=df.set_index("datetime")[["Temp. 30 cm", "Temp. 60 cm", "Temp. 90 cm"]],
     color=["#e74c3c", "#3498db", "#e67e22"],
     height=350
 )
@@ -307,7 +307,7 @@ st.line_chart(
 # agronômico. As séries brutas permanecem disponíveis na tabela inferior para auditoria.
 st.subheader("💧 Umidade do Solo — 30 cm, 60 cm e 90 cm (%)")
 st.line_chart(
-    data=df.set_index("datetime")[["umid30", "umid60", "umid90"]],
+    data=df.set_index("datetime")[["Umid. 30 cm", "Umid. 60 cm", "Umid. 90 cm"]],
     color=["#e74c3c", "#3498db", "#e67e22"],
     height=350
 )
@@ -316,7 +316,7 @@ st.line_chart(
 # relativa), economizando espaço vertical e facilitando a comparação visual simultânea.
 colA, colB = st.columns(2)
 with colA:
-    st.subheader("🌬️ Temperatura do Ar")
+    st.subheader("🌬️ Temperatura do Ar (°C)")
     st.line_chart(data=df.set_index("datetime")["temp_ar"], color="#e74c3c", height=300)
 with colB:
     st.subheader("💨 Umidade do Ar (%)")
