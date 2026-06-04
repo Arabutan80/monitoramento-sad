@@ -296,8 +296,13 @@ with col5:
 # transmissão e gaps de mais de 15 minutos). As cores seguem o esquema semântico dos cartões.
 # =============================================================================================
 st.subheader("🌡️ Temperatura do Solo — 30 cm, 60 cm e 90 cm (°C)")
+df_temp_solo = df.set_index("datetime")[["solo30", "solo60", "solo90"]].rename(columns={
+    "solo30": "Temp. 30 cm",
+    "solo60": "Temp. 60 cm",
+    "solo90": "Temp. 90 cm"
+})
 st.line_chart(
-    data=df.set_index("datetime")[["Temp. 30 cm", "Temp. 60 cm", "Temp. 90 cm"]],
+    data=df_temp_solo,
     color=["#e74c3c", "#3498db", "#e67e22"],
     height=350
 )
@@ -306,8 +311,13 @@ st.line_chart(
 # umid90), com escala fisicamente significativa (0–100%) e leitura imediata pelo operador
 # agronômico. As séries brutas permanecem disponíveis na tabela inferior para auditoria.
 st.subheader("💧 Umidade do Solo — 30 cm, 60 cm e 90 cm (%)")
+df_umid_solo = df.set_index("datetime")[["umid30", "umid60", "umid90"]].rename(columns={
+    "umid30": "Umid. 30 cm",
+    "umid60": "Umid. 60 cm",
+    "umid90": "Umid. 90 cm"
+})
 st.line_chart(
-    data=df.set_index("datetime")[["Umid. 30 cm", "Umid. 60 cm", "Umid. 90 cm"]],
+    data=df_umid_solo,
     color=["#e74c3c", "#3498db", "#e67e22"],
     height=350
 )
