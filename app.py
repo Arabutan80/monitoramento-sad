@@ -175,6 +175,21 @@ def carregar_dados():
     for col in col_numericas:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    # =============================================================================================
+    # Conversão dos valores brutos do ADS1115 (16 bits) para umidade volumétrica em porcentagem,
+    # segundo calibração linear inversa caracterizada em bancada para o sensor resistivo HD-38:
+    #   - 150   (raw) ↔ 100% de umidade (solo saturado, baixa impedância)
+    #   - 25900 (raw) ↔ 0%  de umidade (solo seco extremo, alta impedância)
+    # Fórmula: umidade_pct = (25900 − raw) / 25750 × 100
+    # O clip(0, 100) trunca leituras fora dos limites de calibração (sentinelas −1 e −99 do
+    # firmware do TX), evitando exibição de valores fisicamente impossíveis no painel.
+    # Os valores brutos originais (raw30/raw60/raw90) são preservados para auditoria técnica
+    # na tabela inferior dos últimos registros.
+    # =============================================================================================
+    df["umid30"] = ((25900 - df["raw30"]) / 25750 * 100).clip(0, 100)
+    df["umid60"] = ((25900 - df["raw60"]) / 25750 * 100).clip(0, 100)
+    df["umid90"] = ((25900 - df["raw90"]) / 25750 * 100).clip(0, 100)
+
     # Construção de uma coluna datetime composta a partir da concatenação de data e hora,
     # com dayfirst=True para interpretar corretamente o formato brasileiro "dd/mm/aaaa".
     # Essa coluna serve como índice nas séries temporais dos gráficos.
@@ -226,12 +241,16 @@ with col1:
     """, unsafe_allow_html=True)
 
 with col2:
+
+    # Cartão de umidade do solo agora exibe os valores em porcentagem, derivados da
+    # calibração linear inversa raw → % executada em carregar_dados(). Mantém-se a
+    # rotulação por profundidade (30/60/90 cm) e a borda semântica azul (umid-solo).
     st.markdown(f"""
     <div class="kpi-card umid-solo">
         <div class="label">Umidade Solo (30/60/90 cm)</div>
-        <div class="valor-linha">{ultimo['raw30']} <span style="font-size:0.8rem;color:#666;">(raw) 30 cm</span></div>
-        <div class="valor-linha">{ultimo['raw60']} <span style="font-size:0.8rem;color:#666;">(raw) 60 cm</span></div>
-        <div class="valor-linha">{ultimo['raw90']} <span style="font-size:0.8rem;color:#666;">(raw) 90 cm</span></div>
+        <div class="valor-linha">{ultimo['umid30']:.1f}% <span style="font-size:0.8rem;color:#666;">30 cm</span></div>
+        <div class="valor-linha">{ultimo['umid60']:.1f}% <span style="font-size:0.8rem;color:#666;">60 cm</span></div>
+        <div class="valor-linha">{ultimo['umid90']:.1f}% <span style="font-size:0.8rem;color:#666;">90 cm</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -283,9 +302,12 @@ st.line_chart(
     height=350
 )
 
-st.subheader("💧 Umidade do Solo — 30 cm, 60 cm e 90 cm")
+# Gráfico de umidade do solo agora plota as colunas percentuais derivadas (umid30/umid60/
+# umid90), com escala fisicamente significativa (0–100%) e leitura imediata pelo operador
+# agronômico. As séries brutas permanecem disponíveis na tabela inferior para auditoria.
+st.subheader("💧 Umidade do Solo — 30 cm, 60 cm e 90 cm (%)")
 st.line_chart(
-    data=df.set_index("datetime")[["raw30", "raw60", "raw90"]],
+    data=df.set_index("datetime")[["umid30", "umid60", "umid90"]],
     color=["#e74c3c", "#3498db", "#e67e22"],
     height=350
 )
@@ -300,12 +322,46 @@ with colB:
     st.subheader("💨 Umidade do Ar (%)")
     st.line_chart(data=df.set_index("datetime")["umid_ar"], color="#3498db", height=300)
 
-# Tabela rolável com os 20 registros mais recentes, exibida em largura total. O .tail(20)
-# limita a renderização para preservar a performance de carregamento; o usuário pode rolar
-# horizontalmente para inspecionar todas as 12 colunas relevantes do dataset.
+# =============================================================================================
+# TABELA DE ÚLTIMOS REGISTROS — Exibe os 20 pacotes mais recentes, com cabeçalhos em
+# português acessível ao operador agronômico e ordenação lógica das colunas (identificação
+# temporal → temperaturas do solo → leituras brutas do conversor → umidades calibradas →
+# variáveis do ar → status dos subsistemas). As colunas raw30/raw60/raw90 são preservadas
+# para auditoria técnica do dado original capturado pelo ADS1115 antes da conversão.
+# =============================================================================================
 st.subheader("📋 Últimos Registros")
+
+# Construção do DataFrame de exibição com as colunas reordenadas e cabeçalhos renomeados
+# para apresentação ao usuário final. A renomeação é aplicada apenas à cópia exibida na
+# interface, preservando os nomes técnicos das colunas no DataFrame original (df) para
+# uso em futuras integrações analíticas.
+df_exibicao = df[[
+    "data", "hora",
+    "solo30", "solo60", "solo90",
+    "raw30", "raw60", "raw90",
+    "umid30", "umid60", "umid90",
+    "temp_ar", "umid_ar",
+    "status1", "status2"
+]].tail(20).rename(columns={
+    "data":     "Data",
+    "hora":     "Hora",
+    "solo30":   "Temp. Solo 30 cm (°C)",
+    "solo60":   "Temp. Solo 60 cm (°C)",
+    "solo90":   "Temp. Solo 90 cm (°C)",
+    "raw30":    "Umid. Solo 30 cm (raw)",
+    "raw60":    "Umid. Solo 60 cm (raw)",
+    "raw90":    "Umid. Solo 90 cm (raw)",
+    "umid30":   "Umid. Solo 30 cm (%)",
+    "umid60":   "Umid. Solo 60 cm (%)",
+    "umid90":   "Umid. Solo 90 cm (%)",
+    "temp_ar":  "Temp. do Ar (°C)",
+    "umid_ar":  "Umid. do Ar (%)",
+    "status1":  "Status Micro SD",
+    "status2":  "Status RTC"
+})
+
 st.dataframe(
-    df[["data", "hora", "solo30", "solo60", "solo90", "raw30", "raw60", "raw90", "temp_ar", "umid_ar", "status1", "status2"]].tail(20),
+    df_exibicao,
     use_container_width=True
 )
 
