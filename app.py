@@ -190,9 +190,9 @@ def carregar_dados():
     # df["umid60"] = ((25900 - df["raw60"]) / 25750 * 100).clip(0, 100)
     # df["umid90"] = ((25900 - df["raw90"]) / 25750 * 100).clip(0, 100)
 
-    df["umid30"] = ((25900 - df["raw30"]) / 25650 * 100).clip(0, 100)
-    df["umid60"] = ((25900 - df["raw60"]) / 25650 * 100).clip(0, 100)
-    df["umid90"] = ((25900 - df["raw90"]) / 25650 * 100).clip(0, 100)
+    df["umid30"] = ((25900 - df["raw30"]) / 25000 * 100).clip(0, 100)
+    df["umid60"] = ((25900 - df["raw60"]) / 25000 * 100).clip(0, 100)
+    df["umid90"] = ((25900 - df["raw90"]) / 25000 * 100).clip(0, 100)
     
     # Construção de uma coluna datetime composta a partir da concatenação de data e hora,
     # com dayfirst=True para interpretar corretamente o formato brasileiro "dd/mm/aaaa".
