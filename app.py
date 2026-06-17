@@ -186,14 +186,10 @@ def carregar_dados():
     # Os valores brutos originais (raw30/raw60/raw90) são preservados para auditoria técnica
     # na tabela inferior dos últimos registros.
     # =============================================================================================
-    #df["umid30"] = ((25900 - df["raw30"]) / 25750 * 100).clip(0, 100)
-    #df["umid60"] = ((25900 - df["raw60"]) / 25750 * 100).clip(0, 100)
-    #df["umid90"] = ((25900 - df["raw90"]) / 25750 * 100).clip(0, 100)
-
-    df["umid30"] = ((25900 - df["raw30"]) / 42000 * 100).clip(0, 100)
-    df["umid60"] = ((25900 - df["raw60"]) / 42000 * 100).clip(0, 100)
-    df["umid90"] = ((25900 - df["raw90"]) / 42000 * 100).clip(0, 100)
-    
+    df["umid30"] = ((25900 - df["raw30"]) / 25750 * 100).clip(10, 100)
+    df["umid60"] = ((25900 - df["raw60"]) / 25750 * 100).clip(10, 100)
+    df["umid90"] = ((25900 - df["raw90"]) / 25750 * 100).clip(10, 100)
+ 
     # Construção de uma coluna datetime composta a partir da concatenação de data e hora,
     # com dayfirst=True para interpretar corretamente o formato brasileiro "dd/mm/aaaa".
     # Essa coluna serve como índice nas séries temporais dos gráficos.
